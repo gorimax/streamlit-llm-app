@@ -1,23 +1,41 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-"""
-「app.py」にコードを記述してください。
-画面に入力フォームを1つ用意し、入力フォームから送信したテキストをLangChainを使ってLLMにプロンプトとして渡し、回答結果が画面上に表示されるようにしてください。なお、当コースのLesson8を参考にLangChainのコードを記述してください。
-ラジオボタンでLLMに振る舞わせる専門家の種類を選択できるようにし、Aを選択した場合はAの領域の専門家として、またBを選択した場合はBの領域の専門家としてLLMに振る舞わせるよう、選択値に応じてLLMに渡すプロンプトのシステムメッセージを変えてください。また用意する専門家の種類はご自身で考えてください。
-「入力テキスト」と「ラジオボタンでの選択値」を引数として受け取り、LLMからの回答を戻り値として返す関数を定義し、利用してください。
-Webアプリの概要や操作方法をユーザーに明示するためのテキストを表示してください。
-Streamlit Community Cloudにデプロイする際、Pythonのバージョンは「3.11」としてください。
-"""
-
-"""
-Run Command
-streamlit run sample1.py
-"""
-
 import streamlit as st
-st.title("サンプルアプリ①: 簡単なWebアプリ")
-input_message = st.text_input(label="文字数のカウント対象となるテキストを入力してください。")
-text_count = len(input_message)
+from langchain_openai import ChatOpenAI
+from langchain.schema import SystemMessage, HumanMessage
+
+st.title("専門家選択型質問アプリ")
+st.write("""
+専門家の種類を選択し、入力した質問に対して専門家に応じた回答が表示されます。
+""")
+
+input_message = st.text_input(label="質問を入力してください:")
+selected_item = st.radio(
+    "専門家の種類を選択してください。",
+    ["歴史", "科学"]
+)
+
+def get_llm_response(input_text, expert_type):
+    if expert_type == "歴史":
+        system_message = "You are a history expert. Provide detailed historical insights."
+    elif expert_type == "科学":
+        system_message = "You are a science expert. Provide detailed scientific explanations."
+    else:
+        system_message = "You are a helpful assistant."
+
+    llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
+    messages = [
+        SystemMessage(content=system_message),
+        HumanMessage(content=input_text)
+    ]
+    result = llm(messages)
+    return result.content
+
 if st.button("実行"):
-    st.write(f"文字数: **{text_count}**")
+    if input_message.strip():
+        response = get_llm_response(input_message, selected_item)
+        st.write("### 回答:")
+        st.write(response)
+    else:
+        st.warning("質問を入力してください。")
